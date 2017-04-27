@@ -18,9 +18,14 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.WindowManager;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -30,7 +35,7 @@ import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 
-public class MainActivity extends Activity implements SensorEventListener, LocationListener {
+public class MainActivity extends AppCompatActivity implements SensorEventListener, LocationListener {
 
 
     static final float ALPHA = 0.25f;
@@ -73,8 +78,6 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         textLat = (TextView) findViewById(R.id.latitude);
         textLong = (TextView) findViewById(R.id.longitude);
         textDirection = (TextView) findViewById(R.id.text);
@@ -107,6 +110,43 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            // action with ID action_refresh was selected
+            case R.id.action_add:
+                Toast.makeText(this, "Add new follower selected", Toast.LENGTH_SHORT)
+                        .show();
+                break;
+            // action with ID action_settings was selected
+            case R.id.action_logout:
+
+                auth.signOut();
+                startActivity(new Intent(MainActivity.this, LoginActivity.class));
+
+                Toast.makeText(this, "Logout selected", Toast.LENGTH_SHORT)
+                        .show();
+                break;
+            case R.id.action_settings:
+                Toast.makeText(this, "Settings selected", Toast.LENGTH_SHORT)
+                        .show();
+
+                startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+
+                break;
+            default:
+                break;
+        }
+
+        return true;
+    }
 
     @Override
     protected void onStart() {
@@ -151,7 +191,7 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
                 //                                          int[] grantResults)
                 // to handle the case where the user grants the permission. See the documentation
                 // for ActivityCompat#requestPermissions for more details.
-                return;
+               // return;
             }
             Location networkLocation = locationManager
                     .getLastKnownLocation(LocationManager.NETWORK_PROVIDER);

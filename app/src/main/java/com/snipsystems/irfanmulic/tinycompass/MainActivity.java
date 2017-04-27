@@ -1,7 +1,6 @@
 package com.snipsystems.irfanmulic.tinycompass;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,7 +17,6 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -29,6 +27,7 @@ import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.snipsystems.irfanmulic.model.Person;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
@@ -121,9 +120,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             // action with ID action_refresh was selected
-            case R.id.action_add:
-                Toast.makeText(this, "Add new follower selected", Toast.LENGTH_SHORT)
+            case R.id.action_people:
+                Toast.makeText(this, "My People selected", Toast.LENGTH_SHORT)
                         .show();
+
+                startActivity(new Intent(MainActivity.this, Persons.class));
                 break;
             // action with ID action_settings was selected
             case R.id.action_logout:
@@ -131,14 +132,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 auth.signOut();
                 startActivity(new Intent(MainActivity.this, LoginActivity.class));
 
-                Toast.makeText(this, "Logout selected", Toast.LENGTH_SHORT)
-                        .show();
                 break;
             case R.id.action_settings:
-                Toast.makeText(this, "Settings selected", Toast.LENGTH_SHORT)
-                        .show();
 
                 startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+
+                break;
+            case R.id.action_profile:
+
+                startActivity(new Intent(MainActivity.this, ProfileActivity.class));
 
                 break;
             default:
@@ -352,7 +354,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (range == 13 || range == 14)
             dirTxt = "NW";
 
-        double bearingDiff = getBearing(myLocation.lat, myLocation.lon, person_locations.get(0).lat, person_locations.get(0).lon);
+        double bearingDiff = getBearing(myLocation.getLat(), myLocation.getLon(), person_locations.get(0).getLat(), person_locations.get(0).getLon());
 
         textDirection.setText("" + ((int) bearing) + ((char) 176) + " "
                 + dirTxt+ "("+String.format("%8.2f",bearingDiff)+")"); // char 176 ) = degrees ...

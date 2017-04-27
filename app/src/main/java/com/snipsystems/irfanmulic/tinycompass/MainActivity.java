@@ -3,6 +3,7 @@ package com.snipsystems.irfanmulic.tinycompass;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.GeomagneticField;
 import android.hardware.Sensor;
@@ -12,15 +13,22 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Vibrator;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.WindowManager;
 import android.widget.TextView;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 
 public class MainActivity extends Activity implements SensorEventListener, LocationListener {
 
@@ -54,6 +62,12 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
     private double bearing = 0;
     private TextView textDirection, textLat, textLong;
     private Compass compassView;
+    Vibrator v;
+    private FirebaseAuth.AuthStateListener authListener;
+    private FirebaseAuth auth;
+
+    ArrayList<Person> person_locations = new ArrayList<Person>();
+    Person myLocation = new Person("irfan", 32.65702666004866d, -116.9703197479248d, "San Diego");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,7 +80,28 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
         textDirection = (TextView) findViewById(R.id.text);
         compassView = (Compass) findViewById(R.id.compass);
 
+        //get firebase auth instance
+        auth = FirebaseAuth.getInstance();
 
+        //get current user
+        final FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        authListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
+                if (user == null) {
+                    // user auth state is changed - user is null
+                    // launch login activity
+                    startActivity(new Intent(MainActivity.this, LoginActivity.class));
+                    finish();
+                }
+            }
+        };
+
+        v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+        person_locations.add(new Person("Mama", Double.valueOf(32.850495943334d), Double.valueOf(-112.938938948d), "Bariloche"));
 
         // keep screen light on (wake lock light)
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -97,6 +132,12 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
 
         // get last known position
         Location gpsLocation = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+
+
+        auth = FirebaseAuth.getInstance();
+        if (auth.getCurrentUser() != null) {
+             Log.i("COMPASS"," User Logged in :" + auth.getCurrentUser().getDisplayName());
+        }
 
         if (gpsLocation != null) {
             currentLocation = gpsLocation;
@@ -237,6 +278,19 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
         updateTextDirection(bearing); // display text direction on screen
     }
 
+    protected static double getBearing(double lat1, double lon1, double lat2, double lon2) {
+        double longitude1 = lon1;
+        double longitude2 = lon2;
+        double latitude1 = Math.toRadians(lat1);
+        double latitude2 = Math.toRadians(lat2);
+        double longDiff = Math.toRadians(longitude2 - longitude1);
+        double y = Math.sin(longDiff) * Math.cos(latitude2);
+        double x = Math.cos(latitude1) * Math.sin(latitude2) - Math.sin(latitude1) * Math.cos(latitude2) * Math.cos(longDiff);
+
+        return (Math.toDegrees(Math.atan2(y, x)) + 360) % 360;
+    }
+
+
     private void updateTextDirection(double bearing) {
         int range = (int) (bearing / (360f / 16f));
         String dirTxt = "";
@@ -258,8 +312,22 @@ public class MainActivity extends Activity implements SensorEventListener, Locat
         if (range == 13 || range == 14)
             dirTxt = "NW";
 
+        double bearingDiff = getBearing(myLocation.lat, myLocation.lon, person_locations.get(0).lat, person_locations.get(0).lon);
+
         textDirection.setText("" + ((int) bearing) + ((char) 176) + " "
-                + dirTxt); // char 176 ) = degrees ...
+                + dirTxt+ "("+String.format("%8.2f",bearingDiff)+")"); // char 176 ) = degrees ...
+
+        double angle_difference = Math.abs(bearing - bearingDiff);
+        if (angle_difference<45d){
+            v.vibrate(2000);
+            //  v.cancel();
+            v.vibrate(200);
+            // v.cancel();
+        } else {
+            v.cancel();
+        }
+
+
     }
 
     @Override

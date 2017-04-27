@@ -30,14 +30,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="20dp"
-                android:textSize="20pt" />
+                android:textSize="10pt" />
 
             <TextView
                 android:id="@+id/longitude"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginRight="20dp"
-                android:textSize="20pt" />
+                android:textSize="10pt" />
 
         </LinearLayout>
 
@@ -47,6 +47,7 @@
 
             <com.snipsystems.irfanmulic.tinycompass.Compass
                 android:id="@+id/compass"
+                android:visibility="gone"
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent"
                 android:layout_centerInParent="true"/>

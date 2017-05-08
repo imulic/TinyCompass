@@ -12,6 +12,9 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
@@ -27,6 +30,8 @@ import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
+import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import com.snipsystems.irfanmulic.model.Person;
 
 import java.text.DecimalFormat;
@@ -39,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     static final float ALPHA = 0.25f;
 
+    static final double ANGLE_DETECTION_DIFFERENCE = 10d;
     public static final String NA = "N/A";
     public static final String FIXED = "FIXED";
     // location min time
@@ -70,6 +76,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private FirebaseAuth.AuthStateListener authListener;
     private FirebaseAuth auth;
 
+    private FirebaseRemoteConfig mFirebaseRemoteConfig;
+
+    long[] pattern = {0, 500, 500, 300, 500, 300, 500, 300, 500}; // vibration pattern
+
+    Ringtone r;
+
     ArrayList<Person> person_locations = new ArrayList<Person>();
     Person myLocation = new Person("irfan", 32.65702666004866d, -116.9703197479248d, "San Diego");
 
@@ -87,6 +99,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         //get current user
         final FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
+
+        mFirebaseRemoteConfig = FirebaseRemoteConfig.getInstance();
+
+        FirebaseRemoteConfigSettings configSettings = new FirebaseRemoteConfigSettings.Builder()
+                .setDeveloperModeEnabled(BuildConfig.DEBUG)
+                .build();
+
+        mFirebaseRemoteConfig.setConfigSettings(configSettings);
+
+        mFirebaseRemoteConfig.setDefaults(R.xml.remote_config_defaults);
 
         authListener = new FirebaseAuth.AuthStateListener() {
             @Override
@@ -240,6 +262,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             textLong.setText(NA);
         }
 
+        myLocation.setLat(location.getLatitude());
+        myLocation.setLon(location.getLongitude());
+
+        Log.i("IRFAN:","location found ");
+        Log.i("Latitude:",String.format("%4.8f",location.getLatitude()));
+        Log.i("Longitude:",String.format("%4.8f",location.getLongitude()));
+
         // better => make this creation outside method
         DecimalFormatSymbols dfs = new DecimalFormatSymbols();
         dfs.setDecimalSeparator('.');
@@ -317,7 +346,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             compassView.postInvalidate();
         }
 
-        updateTextDirection(bearing); // display text direction on screen
+        updateScreenInfoForBearing(bearing); // display text direction on screen
     }
 
     protected static double getBearing(double lat1, double lon1, double lat2, double lon2) {
@@ -333,7 +362,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
 
-    private void updateTextDirection(double bearing) {
+    private void updateScreenInfoForBearing(double bearing) {
         int range = (int) (bearing / (360f / 16f));
         String dirTxt = "";
 
@@ -359,17 +388,27 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         textDirection.setText("" + ((int) bearing) + ((char) 176) + " "
                 + dirTxt+ "("+String.format("%8.2f",bearingDiff)+")"); // char 176 ) = degrees ...
 
-        double angle_difference = Math.abs(bearing - bearingDiff);
-        if (angle_difference<45d){
-            v.vibrate(2000);
-            //  v.cancel();
-            v.vibrate(200);
-            // v.cancel();
+        float angle_difference = (float)Math.abs(bearing - bearingDiff);
+
+        compassView.setAngleDifference(angle_difference);
+
+        //Log.i("IRFAN :",String.format("%8.2f",angle_difference));
+        if (angle_difference < ANGLE_DETECTION_DIFFERENCE){
+          //  v.vibrate(2000);
+            v.vibrate(pattern,-1);
+        //    playSound();
         } else {
             v.cancel();
+            if (r != null && r.isPlaying()) r.stop();
         }
 
 
+    }
+
+    private void playSound(){
+        Uri notification = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        Ringtone r = RingtoneManager.getRingtone(getApplicationContext(), notification);
+        r.play();
     }
 
     @Override

@@ -18,6 +18,7 @@ public class Compass extends View {
     private Matrix matrix; // to manage rotation of the compass view
     private Bitmap bitmap;
     private float bearing; // rotation angle to North
+    private float angle_difference; // angle difference from subject to north
 
     public Compass(Context context) {
         super(context);
@@ -33,12 +34,14 @@ public class Compass extends View {
         matrix = new Matrix();
         // create bitmap for compass icon
         bitmap = BitmapFactory.decodeResource(getResources(),
-                R.drawable.compass_icon);
+                R.drawable.location_north);
     }
 
     public void setBearing(float b) {
         bearing = b;
     }
+
+    public void setAngleDifference(float b) { angle_difference = b;}
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -55,19 +58,24 @@ public class Compass extends View {
         int canvasWidth = canvas.getWidth();
         int canvasHeight = canvas.getHeight();
 
+
+
         if (bitmapWidth > canvasWidth || bitmapHeight > canvasHeight) {
             // resize bitmap to fit in canvas
             bitmap = Bitmap.createScaledBitmap(bitmap,
                     (int) (bitmapWidth * 0.85), (int) (bitmapHeight * 0.85), true);
         }
 
+
         // center
         int bitmapX = bitmap.getWidth() / 2;
         int bitmapY = bitmap.getHeight() / 2;
         int parentX = width / 2;
-        int parentY = height / 2;
+        int parentY = height / 4;
         int centerX = parentX - bitmapX;
         int centerY = parentY - bitmapY;
+
+        canvas.drawText( String.format("%4.2f",angle_difference), parentX,parentY-70,paint);
 
         // calculate rotation angle
         int rotation = (int) (360 - bearing);

@@ -24,6 +24,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,6 +35,7 @@ import com.google.firebase.remoteconfig.FirebaseRemoteConfig;
 import com.google.firebase.remoteconfig.FirebaseRemoteConfigSettings;
 import com.snipsystems.irfanmulic.model.Person;
 
+import java.lang.reflect.Array;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.NumberFormat;
@@ -44,7 +46,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     static final float ALPHA = 0.25f;
 
-    static final double ANGLE_DETECTION_DIFFERENCE = 10d;
+    static final double ANGLE_DETECTION_DIFFERENCE = 20d;
     public static final String NA = "N/A";
     public static final String FIXED = "FIXED";
     // location min time
@@ -78,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private FirebaseRemoteConfig mFirebaseRemoteConfig;
 
-    long[] pattern = {0, 500, 500, 300, 500, 300, 500, 300, 500}; // vibration pattern
+    long[] pattern = {0, 1000, 30, 800, 500, 1300, 500, 1000, 500, 1000}; // vibration pattern
 
     Ringtone r;
 
@@ -125,7 +127,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
-        person_locations.add(new Person("Mama", Double.valueOf(32.850495943334d), Double.valueOf(-112.938938948d), "Bariloche"));
+        person_locations.add(new Person("Mama", Double.valueOf(32.850495943334d), Double.valueOf(-112.938938948d), "Novi Pazar"));
+        person_locations.add(new Person("Prof. Bill Griswold", Double.valueOf(32.8801d), Double.valueOf(-117.2340d), "La Jolla"));
+
 
         // keep screen light on (wake lock light)
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -226,8 +230,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 // Fix a position
                 currentLocation = new Location(FIXED);
                 currentLocation.setAltitude(1);
-                currentLocation.setLatitude(43.296482);
-                currentLocation.setLongitude(5.36978);
+                currentLocation.setLatitude(32.296482);
+                currentLocation.setLongitude(-117.36978);
             }
 
             // set current location
@@ -340,7 +344,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
         // update compass view
-        compassView.setBearing((float) bearing);
+        // compassView.setBearing((float) bearing);
+        //compassView.setCompassVisibility(View.VISIBLE);
 
         if (accelOrMagnetic) {
             compassView.postInvalidate();
@@ -359,6 +364,39 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         double x = Math.cos(latitude1) * Math.sin(latitude2) - Math.sin(latitude1) * Math.cos(latitude2) * Math.cos(longDiff);
 
         return (Math.toDegrees(Math.atan2(y, x)) + 360) % 360;
+    }
+
+    private class PersonFound {
+
+        public PersonFound(Person p, double angle){
+            this.p = p;
+            this.angle=angle;
+        }
+
+        private Person p;
+        private double angle;
+        public void setPerson(Person p){this.p = p;}
+        public void setAngle(double angle){this.angle = angle;}
+        public Person getPerson(){ return p;}
+        public double getAngle(){ return angle;}
+    }
+
+    private PersonFound getMinimumBearing(ArrayList<Person> persons, double bearing){
+        double angleDifference = 359d;
+        double min = 359d;
+        double bearingDifference = 359d;
+        Person foundPerson = null ;
+
+        for (Person p : persons){
+            bearingDifference = getBearing(myLocation.getLat(), myLocation.getLon(), p.getLat(), p.getLon());
+            angleDifference = Math.abs(bearing - bearingDifference);
+            if (angleDifference < min){
+                min = angleDifference;
+                foundPerson = p;
+            }
+        }
+
+        return new PersonFound(foundPerson, min);
     }
 
 
@@ -383,21 +421,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         if (range == 13 || range == 14)
             dirTxt = "NW";
 
+/*
         double bearingDiff = getBearing(myLocation.getLat(), myLocation.getLon(), person_locations.get(0).getLat(), person_locations.get(0).getLon());
+        float angle_difference = (float)Math.abs(bearing - bearingDiff);
+*/
+
+        PersonFound p = getMinimumBearing(person_locations,bearing);
 
         textDirection.setText("" + ((int) bearing) + ((char) 176) + " "
-                + dirTxt+ "("+String.format("%8.2f",bearingDiff)+")"); // char 176 ) = degrees ...
+                + dirTxt+ "("+String.format("%8.2f",p.getAngle())+")"); // char 176 ) = degrees ...
 
-        float angle_difference = (float)Math.abs(bearing - bearingDiff);
-
+        float angle_difference = (float)p.getAngle();
         compassView.setAngleDifference(angle_difference);
+        compassView.setPersonFound(p.getPerson());
 
         //Log.i("IRFAN :",String.format("%8.2f",angle_difference));
-        if (angle_difference < ANGLE_DETECTION_DIFFERENCE){
+        if ((angle_difference > -ANGLE_DETECTION_DIFFERENCE) && (angle_difference < ANGLE_DETECTION_DIFFERENCE)){
+            compassView.setCompassVisibility(View.VISIBLE);
+            compassView.setBearing(angle_difference);
           //  v.vibrate(2000);
             v.vibrate(pattern,-1);
+            //v.cancel();
         //    playSound();
         } else {
+            compassView.setCompassVisibility(View.INVISIBLE);
             v.cancel();
             if (r != null && r.isPlaying()) r.stop();
         }

@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.util.AttributeSet;
 import android.view.View;
 
+import com.snipsystems.irfanmulic.model.Person;
+
 public class Compass extends View {
     private static final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private int width = 0;
@@ -19,6 +21,7 @@ public class Compass extends View {
     private Bitmap bitmap;
     private float bearing; // rotation angle to North
     private float angle_difference; // angle difference from subject to north
+    private Person personFound = null;
 
     public Compass(Context context) {
         super(context);
@@ -42,6 +45,10 @@ public class Compass extends View {
     }
 
     public void setAngleDifference(float b) { angle_difference = b;}
+
+    public void setPersonFound(Person person) { this.personFound = person;}
+
+    public void setCompassVisibility (int visibility){this.setVisibility(visibility);}
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -76,6 +83,7 @@ public class Compass extends View {
         int centerY = parentY - bitmapY;
 
         canvas.drawText( String.format("%4.2f",angle_difference), parentX,parentY-70,paint);
+        canvas.drawText( personFound.toString(), 0,parentY-80,paint);
 
         // calculate rotation angle
         int rotation = (int) (360 - bearing);
